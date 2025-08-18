@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>📝 SOA Task Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Google Analytics 4 -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id={{GA4_MEASUREMENT_ID}}"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){ dataLayer.push(arguments); }
+    gtag('js', new Date());
+  </script>
+
+  <style>
+    :root {
+      --primary: #007BFF;
+      --bg: #ffffff;
+      --text: #222;
+      --card-bg: #ffffff;
+      --border: #ddd;
+      --header-bg: #e9ecef;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 1rem;
+      background-color: var(--bg);
+      color: var(--text);
+    }
+    h1 {
+      font-size: 1.8rem;
+      margin-bottom: 1rem;
+      color: var(--primary);
+    }
+    .filters {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    label {
+      font-size: 0.9rem;
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+    select {
+      padding: 0.5rem;
+      font-size: 1rem;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      min-width: 140px;
+    }
+    @media screen and (max-width: 600px) {
+      .filters {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 0.5rem;
+      }
+      .filter-group {
+        flex: 0 0 auto;
+      }
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+      background-color: var(--card-bg);
+      border-radius: 6px;
+      overflow: hidden;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+    th, td {
+      padding: 0.9rem 1rem;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background-color: var(--header-bg);
+      font-weight: bold;
+    }
+    td.comments {
+      white-space: pre-wrap;
+    }
+    @media screen and (max-width: 600px) {
+      table, thead, tbody, th, td, tr { display: block; width: 100%; }
+      thead { display: none; }
+      tr {
+        margin-bottom: 1rem;
+        background-color: var(--card-bg);
+        border-radius: 8px;
+        padding: 1rem;
+        box-shadow: 0 0 6px rgba(0, 0, 0, 0.05);
+      }
+      td {
+        display: block;
+        padding: 0.6rem 0;
+        border-bottom: 1px solid var(--border);
+        word-wrap: break-word;
+      }
+      td::before {
+        content: attr(data-label);
+        display: block;
+        font-weight: bold;
+        color: #555;
+        margin-bottom: 0.25rem;
+      }
+      td:last-child { border-bottom: none; }
+    }
+  </style>
+</head>
+<body>
+
+<h1>📝 SOA Task Tracker</h1>
+
+<div id="filters" class="filters" style="display:none;">
+  <div class="filter-group">
+    <label for="priorityFilter">Priority</label>
+    <select id="priorityFilter" onchange="filterTable()">
+      <option value="all">All</option>
+    </select>
+  </div>
+  <div class="filter-group">
+    <label for="ownerFilter">Ownership</label>
+    <select id="ownerFilter" onchange="filterTable()">
+      <option value="all">All</option>
+    </select>
+  </div>
+  <div class="filter-group">
+    <label for="statusFilter">Status</label>
+    <select id="statusFilter" onchange="filterTable()">
+      <option value="all">All</option>
+    </select>
+  </div>
+</div>
+
+<table id="taskTable" style="display:none;">
+  <thead>
+    <tr>
+      <th>Task</th>
+      <th>Priority</th>
+      <th>Ownership</th>
+      <th>Status</th>
+      <th>Comments</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<script>
+  const encrypted = {
+    salt: "EJDKMzg2qFnd5jAwmit9lw==",
+    iv: "gfL3TSy/djRXk/MJ",
+    ciphertext: "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",
+    iterations: 200000
+  };
+  const correctHashHex = "289f8caa3b9d1be0c450d26b040c1280fb1e72492f93ea764d47b2351b2cc9bf";
+
+  function b64ToArr(b64){ return Uint8Array.from(atob(b64), c => c.charCodeAt(0)); }
+  function arrToStr(buf){ return new TextDecoder().decode(buf); }
+
+  async function hashPassword(password){
+    const enc = new TextEncoder().encode(password);
+    const buf = await crypto.subtle.digest('SHA-256', enc);
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+  }
+
+  async function deriveKey(password, salt_b64, iterations){
+    const salt = b64ToArr(salt_b64);
+    const pwUtf8 = new TextEncoder().encode(password);
+    const baseKey = await crypto.subtle.importKey('raw', pwUtf8, {name:'PBKDF2'}, false, ['deriveKey']);
+    return crypto.subtle.deriveKey(
+      { name: 'PBKDF2', salt: salt, iterations: iterations, hash: 'SHA-256' },
+      baseKey,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['decrypt']
+    );
+  }
+
+  async function decryptData(password){
+    const key = await deriveKey(password, encrypted.salt, encrypted.iterations);
+    const iv = b64ToArr(encrypted.iv);
+    const ct = b64ToArr(encrypted.ciphertext);
+    const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv }, key, ct);
+    return arrToStr(plain);
+  }
+
+  async function loadTasks(){
+    const password = prompt("Enter password:");
+    if(!password) return;
+
+    const hashHex = await hashPassword(password);
+    if(hashHex !== correctHashHex){
+      alert("❌ Incorrect password");
+      return;
+    }
+
+    try {
+      const decrypted = await decryptData(password);
+      const data = JSON.parse(decrypted);
+      renderTasks(data.tasks);
+
+      gtag('config', '{{GA4_MEASUREMENT_ID}}', {
+        page_path: '/secure-tasks',
+        page_title: 'Secure Task List'
+      });
+
+    } catch {
+      alert("❌ Failed to decrypt tasks");
+    }
+  }
+
+  function renderTasks(tasks){
+    const tbody = document.querySelector("#taskTable tbody");
+    tbody.innerHTML = "";
+    const priorities = new Set();
+    const owners = new Set();
+    const statuses = new Set();
+
+    tasks.forEach(task => {
+      priorities.add(task.priority);
+      owners.add(task.owner);
+      statuses.add(task.status);
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td data-label="Task">${task.task}</td>
+        <td data-label="Priority">${task.priority}</td>
+        <td data-label="Ownership">${task.owner}</td>
+        <td data-label="Status">${task.status}</td>
+        <td class="comments" data-label="Comments">${task.comments}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    const prioritySelect = document.getElementById("priorityFilter");
+    const ownerSelect = document.getElementById("ownerFilter");
+    const statusSelect = document.getElementById("statusFilter");
+
+    priorities.forEach(p => {
+      prioritySelect.innerHTML += `<option value="${p}">${p}</option>`;
+    });
+    owners.forEach(o => {
+      ownerSelect.innerHTML += `<option value="${o}">${o}</option>`;
+    });
+    statuses.forEach(s => {
+      statusSelect.innerHTML += `<option value="${s}">${s}</option>`;
+    });
+
+    document.getElementById("filters").style.display = "flex";
+    document.getElementById("taskTable").style.display = "table";
+  }
+
+  function filterTable(){
+    const priorityVal = document.getElementById("priorityFilter").value.toLowerCase();
+    const ownerVal = document.getElementById("ownerFilter").value.toLowerCase();
+    const statusVal = document.getElementById("statusFilter").value.toLowerCase();
+
+    document.querySelectorAll("#taskTable tbody tr").forEach(row => {
+      const p = row.cells[1].textContent.toLowerCase();
+      const o = row.cells[2].textContent.toLowerCase();
+      const s = row.cells[3].textContent.toLowerCase();
+      row.style.display = 
+        (priorityVal === "all" || p === priorityVal) &&
+        (ownerVal === "all" || o === ownerVal) &&
+        (statusVal === "all" || s === statusVal)
+        ? "" : "none";
+    });
+  }
+
+  loadTasks();
+</script>
+
+</body>
+</html>
+
